@@ -3,13 +3,61 @@
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useCanvas } from "@/context/CanvasContext";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function Canvas() {
-  const { isCanvasVisible, closeCanvas } = useCanvas();
+  const { isCanvasVisible, closeCanvas, chartData: metrics } = useCanvas();
+
+  const processChartData = (data: any) => {
+    const labels = ["Likes", "Shares", "Comments", "Saves"];
+    const datasets = Object.keys(data).map((key, index) => ({
+      label: key,
+      data: labels.map((label) => data[key][label]),
+      borderColor: `hsl(${index * 60}, 70%, 50%)`,
+      backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.2)`,
+    }));
+
+    return { labels, datasets };
+  };
+
+  const chartData = metrics ? processChartData(metrics) : null;
 
   const variants = {
-    hidden: { width: 0, opacity: 10, overflow: "hidden" },
+    hidden: { width: 0, opacity: 0, overflow: "hidden" },
     visible: { width: "100%", opacity: 1 },
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top",
+      },
+      title: {
+        display: true,
+        text: "Social Media Metrics",
+      },
+    },
   };
 
   return (
@@ -26,10 +74,11 @@ export default function Canvas() {
           <X size={24} />
         </button>
         <div>
-          <p>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Saepe
-            repellendus dolor omnis.
-          </p>
+          {chartData ? (
+            <Line options={options} data={chartData} />
+          ) : (
+            <p>No chart data available</p>
+          )}
         </div>
       </div>
     </motion.div>
