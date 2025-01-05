@@ -73,13 +73,13 @@ The `social_media_collection` contains performance metrics for different post ty
 | `comments`       | Number of comments on the post.                  |
 
 ### Collection Data Snapshot
-- **Post 1**: `post_id` = dbd71b0e, `post_type` = reel, `likes` = 74, `shares` = 143, `comments` = 149
-- **Post 2**: `post_id` = edf94103, `post_type` = static_image, `likes` = 191, `shares` = 27, `comments` = 30
-- **Post 3**: `post_id` = 3c29bf4b, `post_type` = carousel, `likes` = 238, `shares` = 38, `comments` = 113
+![collection snapshot](https://github.com/user-attachments/assets/81932906-34ec-465d-8226-c8c1b8886a12)
 
-Add image here
 
 ## Workflow Logic
+
+![snapshot workflow](https://github.com/user-attachments/assets/d23a3bd0-aeb7-4ff3-ae2d-36d5c142d598)
+
 
 The workflow follows these steps to process user input and generate meaningful insights:
 
@@ -96,6 +96,9 @@ The workflow follows these steps to process user input and generate meaningful i
 6. **Response Generation**: The `Cohere (Language Model)` processes the prompt and generates a user-friendly, conversational response. For example, "Carousel posts have the highest engagement, with an average of 238 likes and 113 comments."
 
 7. **Output Display**: The `Chat Output` component displays the generated response to the user, completing the workflow.
+
+![exp](https://github.com/user-attachments/assets/5b095830-6141-4e28-9c28-4b7d5313abf9)
+
 
 ## Use Cases
 
