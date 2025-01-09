@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { useState } from "react";
 import { BarChart, BrainCircuit, ChevronRight, Send, User } from "lucide-react";
 import { useCanvas } from "@/context/CanvasContext";
 import { LangflowClient } from "@/util/langflowClient";
-import { marked } from "marked";
-import DOMPurify from "isomorphic-dompurify";
+import remarkGfm from "remark-gfm";
+import ReactMarkdown from "react-markdown";
 
 const flowIdOrName = process.env.NEXT_PUBLIC_FLOW_ID!;
 const langflowId = process.env.NEXT_PUBLIC_LANGFLOW_ID!;
@@ -32,12 +32,6 @@ export default function Page() {
   >([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const parseAndSanitizeMarkdown = useCallback((content: string) => {
-    const rawHtml = marked.parse(content);
-    const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-    return { __html: sanitizedHtml };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,12 +111,11 @@ export default function Page() {
                 message.role === "user" ? "bg-neutral-800" : "bg-transparent"
               }`}
             >
-              <div
-                className="mb-2"
-                dangerouslySetInnerHTML={parseAndSanitizeMarkdown(
-                  message.content
-                )}
-              />
+              <div className="mb-2">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
               {/* {message.role === "assistant" && (
                 <button
                   onClick={openCanvas}
