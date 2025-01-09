@@ -1,63 +1,92 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { Chart, ChartConfiguration, ChartData } from "chart.js/auto";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useCanvas } from "@/context/CanvasContext";
-import { Line } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 export default function Canvas() {
-  const { isCanvasVisible, closeCanvas, chartData: metrics } = useCanvas();
+  const { isCanvasVisible, closeCanvas, chartData } = useCanvas();
+  const chartRef = useRef<HTMLCanvasElement>(null);
+  const chartInstance = useRef<Chart | null>(null);
 
-  const processChartData = (data: any) => {
-    const labels = ["Likes", "Shares", "Comments", "Saves"];
-    const datasets = Object.keys(data).map((key, index) => ({
-      label: key,
-      data: labels.map((label) => data[key][label]),
-      borderColor: `hsl(${index * 60}, 70%, 50%)`,
-      backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.2)`,
+  const processChartData = (data: any): ChartData | null => {
+    if (!data || !data.engagement_metrics) return null;
+
+    const processedData = data.engagement_metrics.reduce((acc: any, curr: any) => {
+      acc[curr.post_type] = {
+        Likes: curr.likes_per_100_views,
+        Shares: curr.shares_per_100_views,
+        Comments: curr.comments_per_100_views,
+        Saves: curr.saves_per_100_views,
+      };
+      return acc;
+    }, {});
+
+    const labels = Object.keys(processedData);
+    const metrics = Object.keys(processedData[labels[0]]);
+
+    const datasets = metrics.map((metric, index) => ({
+      label: metric,
+      data: labels.map((label) => processedData[label][metric]),
+      borderColor: `hsl(${index * (360 / metrics.length)}, 70%, 50%)`,
+      backgroundColor: `hsla(${index * (360 / metrics.length)}, 70%, 50%, 0.2)`,
     }));
 
     return { labels, datasets };
   };
 
-  const chartData = metrics ? processChartData(metrics) : null;
+  useEffect(() => {
+    if (chartRef.current && chartData) {
+      const ctx = chartRef.current.getContext("2d");
+      if (ctx) {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+
+        const processedData = processChartData(chartData);
+        if (processedData) {
+          const config: ChartConfiguration = {
+            type: "bar",
+            data: processedData,
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: "top",
+                },
+                title: {
+                  display: true,
+                  text: "Engagement Metrics Analysis",
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: "Engagement per 100 Views",
+                  },
+                },
+              },
+            },
+          };
+          chartInstance.current = new Chart(ctx, config);
+        }
+      }
+    }
+
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, [chartData]);
 
   const variants = {
     hidden: { width: 0, opacity: 0, overflow: "hidden" },
     visible: { width: "100%", opacity: 1 },
-  };
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "top",
-      },
-      title: {
-        display: true,
-        text: "Social Media Metrics",
-      },
-    },
   };
 
   return (
@@ -75,7 +104,7 @@ export default function Canvas() {
         </button>
         <div>
           {chartData ? (
-            <Line options={options} data={chartData} />
+            <canvas ref={chartRef} />
           ) : (
             <p>No chart data available</p>
           )}

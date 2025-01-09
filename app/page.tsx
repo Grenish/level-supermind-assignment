@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { BarChart, BrainCircuit, ChevronRight, Send, User } from "lucide-react";
 import { useCanvas } from "@/context/CanvasContext";
 import { LangflowClient } from "@/util/langflowClient";
-import remarkGfm from "remark-gfm";
-import ReactMarkdown from "react-markdown";
+import { marked } from "marked";
+import DOMPurify from "isomorphic-dompurify";
 
 const flowIdOrName = process.env.NEXT_PUBLIC_FLOW_ID!;
 const langflowId = process.env.NEXT_PUBLIC_LANGFLOW_ID!;
@@ -31,7 +31,13 @@ export default function Page() {
     Array<{ role: string; content: string }>
   >([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false); // Loading state
+  const [loading, setLoading] = useState(false);
+
+  const parseAndSanitizeMarkdown = useCallback((content: string) => {
+    const rawHtml = marked.parse(content);
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+    return { __html: sanitizedHtml };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +46,7 @@ export default function Page() {
     const userMessage = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
-    setLoading(true); // Show skeleton loader
+    setLoading(true);
 
     try {
       const response = await client.runFlow(
@@ -65,8 +71,15 @@ export default function Page() {
         setMessages((prev) => [...prev, assistantMessage]);
 
         // Process and pass metrics data to Canvas
-        if (output.metrics) {
-          setChartData(output.metrics); // Pass raw metrics to Canvas
+        try {
+          const jsonMatch = output.message.text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const jsonString = jsonMatch[0];
+            const metricsData = JSON.parse(jsonString);
+            setChartData(metricsData);
+          }
+        } catch (error) {
+          console.error("Error parsing JSON from assistant's message:", error);
         }
       }
     } catch (error) {
@@ -104,12 +117,13 @@ export default function Page() {
                 message.role === "user" ? "bg-neutral-800" : "bg-transparent"
               }`}
             >
-              <div className="mb-2">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {message.content}
-                </ReactMarkdown>
-              </div>
-              {message.role === "assistant" && (
+              <div
+                className="mb-2"
+                dangerouslySetInnerHTML={parseAndSanitizeMarkdown(
+                  message.content
+                )}
+              />
+              {/* {message.role === "assistant" && (
                 <button
                   onClick={openCanvas}
                   className="bg-gray-800 w-fit my-3 p-1 rounded-xl text-xs sm:text-sm md:text-base py-4 px-5 flex items-center gap-3"
@@ -118,12 +132,11 @@ export default function Page() {
                   <p>View Graph</p>
                   <ChevronRight size={16} />
                 </button>
-              )}
+              )} */}
             </div>
           </div>
         ))}
 
-        {/* Show skeleton loader if loading */}
         {loading && <SkeletonLoader />}
       </div>
 
